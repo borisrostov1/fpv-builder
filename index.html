@@ -8,11 +8,9 @@
 body{font-family:Arial,sans-serif;margin:0;padding:20px;background:#f7f7f7}
 .container{max-width:900px;margin:0 auto;background:#fff;padding:24px;border-radius:10px}
 h1{margin-top:0}
-select,button{padding:8px 12px;font-size:14px;margin-right:8px}
-button{background:#2a9d8f;color:#fff;border:none;cursor:pointer}
-button:hover{background:#1d7a6f}
-.row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
-.card{border:1px solid #ddd;padding:12px;border-radius:6px}
+select{padding:8px 12px;font-size:14px}
+.row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.card{border:1px solid #ddd;padding:12px;border-radius:6px;margin-bottom:16px}
 table{width:100%;border-collapse:collapse;margin-top:16px;font-size:13px}
 th,td{border:1px solid #ccc;padding:8px;text-align:left}
 th{background:#eef}
@@ -21,7 +19,8 @@ th{background:#eef}
 .red{background:#ff6b6b}
 .yellow{background:#ffc107}
 .green{background:#2a9d8f}
-.small{font-size:12px}
+.small{font-size:12px;color:#666}
+.disclaimer{background:#fff8d6;border:1px solid #e8d44d;padding:14px;border-radius:6px;font-size:13px;margin-top:16px}
 footer{margin-top:24px;padding-top:16px;border-top:1px solid #ccc;font-size:13px;color:#666}
 </style>
 </head>
@@ -30,7 +29,7 @@ footer{margin-top:24px;padding-top:16px;border-top:1px solid #ccc;font-size:13px
 <h1>Конструктор: рамы FPV-дронов</h1>
 
 <div class="row">
-<label>Класс (размер = диаметр пропеллеров):</label>
+<label for="frameSelect">Класс (размер = диаметр пропеллеров):</label>
 <select id="frameSelect"></select>
 </div>
 
@@ -46,8 +45,8 @@ footer{margin-top:24px;padding-top:16px;border-top:1px solid #ccc;font-size:13px
 <span id="frameWeight">0 г</span>
 </div>
 
-<div class="row">
-<label>Компоненты:</label>
+<div class="card">
+<strong>Компоненты:</strong>
 <div id="components"></div>
 </div>
 
@@ -60,13 +59,13 @@ footer{margin-top:24px;padding-top:16px;border-top:1px solid #ccc;font-size:13px
 <div class="card">
 <h2>Каталог классов</h2>
 <table>
-<thead><tr><th>Класс</th><th>Задача</th><th>Карбон (ориентир)</th><th>Батарея (пример)</th></tr></thead>
+<thead><tr><th>Класс</th><th>Задача</th><th>Вес карбоновой рамы (ориентир)</th><th>Батарея (пример)</th></tr></thead>
 <tbody id="tableBody"></tbody>
 </table>
 </div>
 
-<div class="card" style="margin-top:16px;background:#fff0;padding:14px">
-<p><strong>Дисклеймер.</strong> Вся информация носит ознакомительный характер. Веса — ориентировочные (конкретная модель зависит от толщины карбона и дизайна). Перед покупкой сверяй характеристики с карточкой производителя. Полёты должны соответствовать правилам твоего региона.</p>
+<div class="disclaimer">
+<strong>Дисклеймер.</strong> Вся информация на сайте носит ознакомительный характер и не является руководством к покупке или сборке. Веса компонентов ориентировочные: конкретная модель зависит от толщины карбона, производителя и комплектации. Перед покупкой сверяйте характеристики со спецификацией производителя. Полёты должны соответствовать правилам вашего региона.
 </div>
 
 <footer>
@@ -75,91 +74,178 @@ footer{margin-top:24px;padding-top:16px;border-top:1px solid #ccc;font-size:13px
 </div>
 
 <script>
-const frames = [
-{id:'3',name:'3"',desc:'Cinewhoop / микро. Для помещений и безопасных полётов рядом с людьми.',stack:'20x20',battery:'3S 450 mAh',baseWeight:{carbon:65,aluminum:115,plastic:130},components:{motors:'Моторы 1404 (~60 г)',fc:'FC + ESC 20A, 20x20 (~35 г)',cam:'Камера nano (~5 г)',props:'Пропеллеры 3" (~10 г)'},batteryWeight:60,threshold:300},
-{id:'4',name:'4"',desc:'Компактный фристайл / круиз.',stack:'20x20 / 30.5x30.5',battery:'4S 850 mAh',baseWeight:{carbon:110,aluminum:160,plastic:0},components:null,batteryWeight:120,threshold:500},
-{id:'5',name:'5"',desc:'Классика FPV: фристайл и гонки. Самый широкий выбор деталей.',stack:'30.5x30.5',battery:'4S / 6S 1300–1500 mAh',baseWeight:{carbon:140,aluminum:200,plastic:0},components:{motors:'Моторы 2207 1750KV x4 (~160 г)',fc:'FC + ESC 50A, 30.5x30.5 (~110 г)',cam:'Камера 19 мм (~8 г)',props:'Пропеллеры 5" (~30 г)'},batteryWeight:180,threshold:1200},
-{id:'6',name:'6"',desc:'Переход к дальнолётам.',stack:'30.5x30.5',battery:'6S 1800 mAh',baseWeight:{carbon:180,aluminum:260,plastic:0},components:null,batteryWeight:220,threshold:800},
-{id:'7',name:'7"',desc:'Классический long range. Крупные винты дают лучшую эффективность.',stack:'30.5x30.5 / 30x30',battery:'6S 2500–3300 mAh',baseWeight:{carbon:210,aluminum:310,plastic:0},components:null,batteryWeight:320,threshold:1100},
-{id:'8',name:'8"',desc:'Складные комплекты для портативных LR-сборок.',stack:'30.5x30.5',battery:'6S 3300 mAh',baseWeight:{carbon:270,aluminum:400,plastic:0},components:null,batteryWeight:350,threshold:1300},
-{id:'9',name:'9"',desc:'Крупный дальнолёт. Нужно тщательно подбирать моторы и батарею.',stack:'30.5x30.5',battery:'6S 4000–5000 mAh',baseWeight:{carbon:370,aluminum:550,plastic:0},components:null,batteryWeight:500,threshold:1600},
-{id:'10',name:'10"',desc:'«Марафонец»: очень дальние полёты и cinelifter.',stack:'30.5x30.5',battery:'6S 5000–6000 mAh',baseWeight:{carbon:480,aluminum:720,plastic:0},components:null,batteryWeight:650,threshold:2000},
-{id:'13',name:'13"',desc:'X-class. Усиленные рамы для тяжёлых платформ (например, 570 мм).',stack:'30.5x30.5',battery:'12S / двойная 6S',baseWeight:{carbon:620,aluminum:930,plastic:0},components:null,batteryWeight:900,threshold:2500},
-{id:'15',name:'15"',desc:'Максимальный масштаб. Ближе к лёгким промышленным платформам.',stack:'30.5x30.5 / свой',battery:'очень крупная',baseWeight:{carbon:800,aluminum:1200,plastic:0},components:null,batteryWeight:1100,threshold:3500}
+// ===== Данные =====
+var frames = [
+  {id:'3', name:'3 дюйма (cinewhoop)', short:'3"',
+   desc:'Cinewhoop / микро. Для помещений и полётов рядом с людьми.',
+   stack:'20x20', battery:'3S 450 mAh',
+   baseWeight:{carbon:65, aluminum:115, plastic:130},
+   components:['Моторы 1404 x4 (~60 г)','FC + ESC 20A, 20x20 (~35 г)','Камера nano (~5 г)','Пропеллеры 3" (~10 г)'],
+   batteryWeight:60, threshold:300},
+  {id:'4', name:'4 дюйма', short:'4"',
+   desc:'Компактный фристайл / круиз.',
+   stack:'20x20 / 30.5x30.5', battery:'4S 850 mAh',
+   baseWeight:{carbon:110, aluminum:160, plastic:0},
+   components:null, batteryWeight:120, threshold:500},
+  {id:'5', name:'5 дюймов', short:'5"',
+   desc:'Классика FPV: фристайл и гонки. Самый широкий выбор деталей.',
+   stack:'30.5x30.5', battery:'4S / 6S 1300-1500 mAh',
+   baseWeight:{carbon:140, aluminum:200, plastic:0},
+   components:['Моторы 2207 1750KV x4 (~160 г)','FC + ESC 50A, 30.5x30.5 (~110 г)','Камера 19 мм (~8 г)','Пропеллеры 5" (~30 г)'],
+   batteryWeight:180, threshold:1200},
+  {id:'6', name:'6 дюймов', short:'6"',
+   desc:'Переход к дальнолётам.',
+   stack:'30.5x30.5', battery:'6S 1800 mAh',
+   baseWeight:{carbon:180, aluminum:260, plastic:0},
+   components:null, batteryWeight:220, threshold:800},
+  {id:'7', name:'7 дюймов', short:'7"',
+   desc:'Классический long range. Крупные винты дают лучшую эффективность.',
+   stack:'30.5x30.5 / 30x30', battery:'6S 2500-3300 mAh',
+   baseWeight:{carbon:210, aluminum:310, plastic:0},
+   components:null, batteryWeight:320, threshold:1100},
+  {id:'8', name:'8 дюймов', short:'8"',
+   desc:'Складные комплекты для портативных LR-сборок.',
+   stack:'30.5x30.5', battery:'6S 3300 mAh',
+   baseWeight:{carbon:270, aluminum:400, plastic:0},
+   components:null, batteryWeight:350, threshold:1300},
+  {id:'9', name:'9 дюймов', short:'9"',
+   desc:'Крупный дальнолёт. Нужно тщательно подбирать моторы и батарею.',
+   stack:'30.5x30.5', battery:'6S 4000-5000 mAh',
+   baseWeight:{carbon:370, aluminum:550, plastic:0},
+   components:null, batteryWeight:500, threshold:1600},
+  {id:'10', name:'10 дюймов', short:'10"',
+   desc:'Марафонец: очень дальние полёты и cinelifter.',
+   stack:'30.5x30.5', battery:'6S 5000-6000 mAh',
+   baseWeight:{carbon:480, aluminum:720, plastic:0},
+   components:null, batteryWeight:650, threshold:2000},
+  {id:'13', name:'13 дюймов (X-class)', short:'13"',
+   desc:'X-class. Усиленные рамы для тяжёлых платформ и больших нагрузок.',
+   stack:'30.5x30.5', battery:'12S / двойная 6S',
+   baseWeight:{carbon:620, aluminum:930, plastic:0},
+   components:null, batteryWeight:900, threshold:2500},
+  {id:'15', name:'15 дюймов', short:'15"',
+   desc:'Максимальный масштаб. Ближе к лёгким промышленным платформам.',
+   stack:'30.5x30.5 / свой', battery:'очень крупная',
+   baseWeight:{carbon:800, aluminum:1200, plastic:0},
+   components:null, batteryWeight:1100, threshold:3500}
 ];
 
-const materials = [
-{id:'carbon',name:'Карбон',mult:1,note:'Золотой стандарт для FPV.'},
-{id:'aluminum',name:'Алюминий',mult:1.4,note:'В FPV — скорее экзотика. Тяжелее карбона.'},
-{id:'plastic',name:'Пластик',mult:1.8,note:'Допустим только для 3".'}
+var materials = [
+  {id:'carbon', name:'Карбон', note:'Золотой стандарт для FPV.'},
+  {id:'aluminum', name:'Алюминий', note:'В FPV — скорее экзотика: тяжелее карбона.'},
+  {id:'plastic', name:'Пластик', note:'Допустим только для 3".'}
 ];
 
-let frameIndex = 0;
-let selectedMaterial = 'carbon';
+var frameIndex = 0;
+var selectedMaterial = 'carbon';
 
-function render(){
-const f = frames[frameIndex];
-const m = materials.find(x=>x.id===selectedMaterial);
-const base = f.baseWeight[selectedMaterial];
-const w = base ? Math.round(base * (selectedMaterial==='aluminum' ? m.mult : 1)) : 0;
+// ===== Утилиты =====
+function el(id){ return document.getElementById(id); }
 
-document.getElementById('frameInfo').innerHTML = '<p><strong>' + f.name + ' — ' + f.desc + '</strong></p><p>Стек: ' + f.stack + '. Пример АКБ: ' + f.battery + '.</p>';
-document.getElementById('frameWeight').textContent = w + ' г';
-
-const comp = document.getElementById('components');
-if(f.components){
-comp.innerHTML = Object.values(f.components).map(v=>'<div>'+v+'</div>').join('');
-} else {
-comp.innerHTML = '<div>Каталог комплектующих для этого класса пока в разработке.</div>';
+function frameWeight(f, matId){
+  var base = f.baseWeight[matId];
+  if(!base){ return 0; }
+  if(matId === 'aluminum'){ return Math.round(base * 1.4); }
+  return base;
 }
 
-const total = w + f.batteryWeight;
-document.getElementById('total').textContent = total + ' г';
+// ===== Отрисовка =====
+function render(){
+  var f = frames[frameIndex];
+  var w = frameWeight(f, selectedMaterial);
 
-const pct = Math.min(100, Math.max(0, total/f.threshold*100));
-const cls = total >= f.threshold ? 'red' : (total >= f.threshold*0.7 ? 'yellow' : 'green');
-document.getElementById('bar').className = 'fill ' + cls;
-document.getElementById('bar').style.width = pct + '%';
+  el('frameInfo').innerHTML =
+    '<p><strong>' + f.short + ' — ' + f.desc + '</strong></p>' +
+    '<p>Стек: ' + f.stack + '. Пример АКБ: ' + f.battery + '.</p>';
 
-document.getElementById('tableBody').innerHTML = frames.map(fr=>{
-return '<tr><td>'+fr.name+'</td><td>'+fr.desc+'</td><td>'+fr.baseWeight.carbon+' г</td><td>'+fr.battery+'</td></tr>';
-}).join('');
+  el('frameWeight').textContent = w + ' г';
+
+  var comp = el('components');
+  if(f.components){
+    comp.innerHTML = f.components.map(function(v){ return '<div>' + v + '</div>'; }).join('');
+  } else {
+    comp.innerHTML = '<div class="small">Каталог комплектующих для этого класса пока в разработке. Сейчас считается вес рамы и примерной батареи.</div>';
+  }
+
+  var total = w + f.batteryWeight;
+  el('total').textContent = total + ' г';
+
+  var pct = Math.min(100, Math.round(total / f.threshold * 100));
+  var cls = 'green';
+  if(total >= f.threshold){ cls = 'red'; }
+  else if(total >= f.threshold * 0.7){ cls = 'yellow'; }
+  el('bar').className = 'fill ' + cls;
+  el('bar').style.width = pct + '%';
+
+  var rows = '';
+  for(var i = 0; i < frames.length; i++){
+    var fr = frames[i];
+    rows += '<tr><td>' + fr.short + '</td><td>' + fr.desc + '</td><td>' +
+            fr.baseWeight.carbon + ' г</td><td>' + fr.battery + '</td></tr>';
+  }
+  el('tableBody').innerHTML = rows;
 }
 
 function updateMaterialButtons(){
-const is3 = frames[frameIndex].id === '3';
-document.querySelectorAll('input[name="mat"]').forEach(inp=>{
-if(inp.value==='plastic'){
-inp.disabled = !is3;
-if(!is3 && inp.checked){ inp.checked = false; selectedMaterial = 'carbon'; }
+  var is3 = frames[frameIndex].id === '3';
+  var inputs = document.querySelectorAll('input[name="mat"]');
+  for(var i = 0; i < inputs.length; i++){
+    var inp = inputs[i];
+    if(inp.value === 'plastic'){
+      inp.disabled = !is3;
+      if(!is3 && inp.checked){
+        inp.checked = false;
+        selectedMaterial = 'carbon';
+        document.querySelector('input[name="mat"][value="carbon"]').checked = true;
+      }
+    }
+  }
 }
-});
+
+// ===== Инициализация =====
+var selFrame = el('frameSelect');
+for(var i = 0; i < frames.length; i++){
+  var opt = document.createElement('option');
+  opt.value = String(i);
+  opt.textContent = frames[i].short + ' — ' + frames[i].name;
+  selFrame.appendChild(opt);
 }
 
-const selFrame = document.getElementById('frameSelect');
-frames.forEach(f=>selFrame.innerHTML += '<option>'+f.name+'</option>');
+var matContainer = el('materials');
+for(var m = 0; m < materials.length; m++){
+  var mat = materials[m];
+  var div = document.createElement('div');
+  var input = document.createElement('input');
+  input.type = 'radio';
+  input.name = 'mat';
+  input.value = mat.id;
+  if(m === 0){ input.checked = true; }
+  var label = document.createElement('label');
+  label.appendChild(input);
+  label.appendChild(document.createTextNode(' ' + mat.name + ' '));
+  var span = document.createElement('span');
+  span.className = 'small';
+  span.textContent = mat.note;
+  label.appendChild(span);
+  div.appendChild(label);
+  matContainer.appendChild(div);
+}
 
-const matContainer = document.getElementById('materials');
-materials.forEach((mat,i)=>{
-const div = document.createElement('div');
-div.innerHTML = '<label><input type="radio" name="mat" '+(i===0?'checked':'')+' value="'+mat.id+'"> '+mat.name+' <span class="small">'+mat.note+'</span></label>';
-matContainer.appendChild(div);
+matContainer.addEventListener('change', function(e){
+  if(e.target && e.target.name === 'mat'){
+    selectedMaterial = e.target.value;
+    updateMaterialButtons();
+    render();
+  }
 });
 
-document.querySelectorAll('input[name="mat"]').forEach(inp=>{
-inp.addEventListener('change', ()=>{
-selectedMaterial = inp.value;
-updateMaterialButtons();
-render();
-});
-});
-
-selFrame.addEventListener('change', ()=>{
-frameIndex = Array.from(selFrame.options).findIndex(o=>o.text===selFrame.value);
-selectedMaterial = 'carbon';
-document.querySelector('input[name="mat"]:checked').checked = true;
-updateMaterialButtons();
-render();
+selFrame.addEventListener('change', function(){
+  frameIndex = parseInt(selFrame.value, 10);
+  selectedMaterial = 'carbon';
+  var carbonInput = document.querySelector('input[name="mat"][value="carbon"]');
+  if(carbonInput){ carbonInput.checked = true; }
+  updateMaterialButtons();
+  render();
 });
 
 updateMaterialButtons();
