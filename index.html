@@ -6,28 +6,33 @@
 <title>FPV-подборщик (Vue)</title>
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <style>
-  body { font-family: sans-serif; max-width: 1200px; margin: 40px auto; line-height: 1.5; padding: 0 16px; }
-  .panel { display: flex; gap: 30px; }
+  body { font-family: sans-serif; max-width: 1200px; margin: 40px auto; line-height: 1.5; }
+  .panel { display: flex; gap: 30px; align-items: flex-start; }
   .sidebar { width: 320px; flex-shrink: 0; }
   .card { background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-  .status-ok { color: #2e7d32; }
-  .status-warn { color: #f57f17; }
-  .status-bad { color: #c62828; }
   select, button { padding: 8px; font-size: 14px; }
   .row { margin-bottom: 12px; }
   .label { font-weight: 700; margin-bottom: 4px; }
+  .cat-title { font-weight: 700; margin: 10px 0 4px; }
   .config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
   .item-card { border: 1px solid #ddd; padding: 12px; border-radius: 6px; background: #fff; }
   .item-card.ok { border-color: #2e7d32; }
   .item-card.warn { border-color: #f57f17; }
   .item-card.bad { border-color: #c62828; }
   h1 { margin-bottom: 10px; }
+  .weight-bar { width: 100%; height: 12px; background: #e0e0e0; border-radius: 6px; margin: 8px 0; overflow: hidden; }
+  .weight-fill { height: 100%; transition: width .3s; }
+  .status-ok { color: #2e7d32; }
+  .status-warn { color: #f57f17; }
+  .status-bad { color: #c62828; font-weight: 700; }
+  .muted { color: #777; font-size: 13px; }
   table { border-collapse: collapse; width: 100%; font-size: 14px; }
-  th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
-  th { background: #f0f0f0; }
-  .mat-note { font-size: 12px; color: #555; margin: 6px 0 0; }
-  .disclaimer { background: #fff8e1; border: 1px solid #f0d860; padding: 14px 18px; border-radius: 8px; font-size: 13px; color: #5a4a00; margin-top: 30px; }
-  footer { margin-top: 24px; padding: 16px 0; border-top: 1px solid #ddd; font-size: 13px; color: #666; text-align: center; }
+  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+  th { background: #eee; }
+  .choose-btn { padding: 4px 10px; cursor: pointer; }
+  .material-note { font-size: 13px; color: #555; margin-top: 6px; }
+  .disclaimer { background: #fff8dc; border: 1px solid #e6d47f; padding: 14px 18px; border-radius: 8px; margin-top: 40px; font-size: 14px; }
+  footer { margin-top: 30px; padding: 16px 0; border-top: 1px solid #ddd; color: #666; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -38,80 +43,93 @@
   <div class="panel">
     <div class="sidebar">
       <div class="card">
-        <div class="label">Рама</div>
+        <h2>Рама</h2>
         <div class="row">
-          <select v-model="selectedFrame" style="width:100%">
-            <option v-for="f in frameKeys" :value="f">{{ DATA.frames[f].name }}</option>
+          <select v-model="selectedFrame" style="width:100%;">
+            <option v-for="key in frameOrder" :value="key">{{ DATA.frames[key].name }}</option>
           </select>
         </div>
 
-        <div class="label" style="margin-top:10px">Материал</div>
-        <div v-for="m in materialKeys" :key="m">
-          <label>
-            <input type="radio" :value="m" v-model="selectedMaterial">
-            {{ DATA.materials[m].name }}
-          </label>
+        <div class="row">
+          <div class="label">Материал:</div>
+          <div v-for="m in materialOrder" :key="m" style="margin-bottom:4px;">
+            <label>
+              <input type="radio" :value="m" v-model="material"
+                     :disabled="!currentFrame.weights[m]">
+              {{ DATA.materials[m].name }}
+              <span v-if="!currentFrame.weights[m]" class="muted">(не используется для этого класса)</span>
+              <span v-else> — {{ currentFrame.weights[m] }} г</span>
+            </label>
+          </div>
+          <div class="material-note">{{ DATA.materials[material].note }}</div>
         </div>
-        <p class="mat-note">{{ currentMaterialNote }}</p>
-      </div>
 
-      <div class="card">
-        <h3>Вес сборки</h3>
-        <p><strong>{{ totalWeight }} г</strong> из {{ currentFrame.maxWeight }} г максимум</p>
-        <div style="background:#eee;border-radius:6px;height:12px;overflow:hidden">
-          <div :style="{ width: Math.min(percentage,100) + '%', background: barColor, height: '100%' }"></div>
+        <div class="row">
+          <h3>Выбранная рама</h3>
+          <p>{{ currentFrame.purpose }}</p>
+          <p><strong>Стек:</strong> {{ currentFrame.stack }}</p>
+          <p><strong>Аккумулятор:</strong> {{ currentFrame.battery }}</p>
+          <p><strong>Макс. взлётный вес:</strong> {{ currentFrame.maxWeight }} г</p>
         </div>
-        <p :class="'status-' + status">{{ statusText }}</p>
-      </div>
 
-      <div class="card">
-        <h3>Выбранная рама</h3>
-        <p>{{ currentFrame.props }}</p>
-        <p><strong>Стек:</strong> {{ currentFrame.stack }}</p>
-        <p><strong>Аккумулятор:</strong> {{ currentFrame.battery }}</p>
-        <p><strong>Вес рамы ({{ DATA.materials[selectedMaterial].name.toLowerCase() }}):</strong> {{ frameWeight }} г</p>
+        <div class="row">
+          <h3>Вес сборки</h3>
+          <p><strong>Итого:</strong> {{ totalWeight }} г ({{ percentage }}% от максимума)</p>
+          <div class="weight-bar">
+            <div class="weight-fill" :style="{ width: barWidth, background: barColor }"></div>
+          </div>
+          <p :class="statusClass">{{ statusText }}</p>
+          <p v-if="!currentFrame.available" class="muted">
+            Каталог комплектующих для этого класса пока в разработке — сейчас считается только вес рамы.
+          </p>
+        </div>
       </div>
     </div>
 
-    <div class="main" style="flex:1">
+    <div class="main">
       <h2>Комплектующие</h2>
-      <p v-if="!hasComponents">Для этого класса каталог комплектующих пока в разработке — калькулятор считает вес рамы.</p>
-      <div class="config-grid" v-if="hasComponents">
-        <div v-for="(items, cat) in currentComponents" :key="cat" class="item-card">
-          <div class="label">{{ cat }}</div>
-          <div v-for="it in items" :key="it.id">
-            <label style="display:block;margin-bottom:6px">
+      <p v-if="!currentFrame.available" class="muted">Для этого класса компоненты появятся позже.</p>
+      <div class="config-grid">
+        <div v-for="(items, cat) in currentComponents" :key="cat" class="item-card" :class="itemClass">
+          <div class="cat-title">{{ cat }}:</div>
+          <div v-for="it in items" :key="it.id" style="margin-bottom:4px;">
+            <label>
               <input type="radio" :name="cat" :value="it.id" v-model="selection[cat]">
-              {{ it.name }} <span style="color:#888">— {{ it.weight }} г</span>
+              {{ it.name }} — {{ it.weight }} г
             </label>
           </div>
         </div>
       </div>
 
-      <h2 style="margin-top:30px">Каталог классов</h2>
+      <h2 style="margin-top:40px;">Каталог рам</h2>
       <table>
-        <thead>
-          <tr><th>Класс</th><th>Назначение</th><th>Стек</th><th>Аккумулятор</th><th>Макс. вес</th><th></th></tr>
-        </thead>
-        <tbody>
-          <tr v-for="f in frameKeys" :key="f">
-            <td>{{ DATA.frames[f].name }}</td>
-            <td>{{ DATA.frames[f].props }}</td>
-            <td>{{ DATA.frames[f].stack }}</td>
-            <td>{{ DATA.frames[f].battery }}</td>
-            <td>{{ DATA.frames[f].maxWeight }} г</td>
-            <td><button @click="pickFrame(f)">выбрать</button></td>
-          </tr>
-        </tbody>
+        <tr>
+          <th>Класс</th>
+          <th>Назначение</th>
+          <th>Стек</th>
+          <th>Аккумулятор</th>
+          <th>Вес рамы (карбон)</th>
+          <th>Макс. взлётный вес</th>
+          <th></th>
+        </tr>
+        <tr v-for="key in frameOrder" :key="key">
+          <td><strong>{{ DATA.frames[key].name }}</strong></td>
+          <td>{{ DATA.frames[key].purpose }}</td>
+          <td>{{ DATA.frames[key].stack }}</td>
+          <td>{{ DATA.frames[key].battery }}</td>
+          <td>{{ DATA.frames[key].weights.carbon }} г</td>
+          <td>{{ DATA.frames[key].maxWeight }} г</td>
+          <td><button class="choose-btn" @click="selectedFrame = key">выбрать</button></td>
+        </tr>
       </table>
     </div>
   </div>
 
   <div class="disclaimer">
-    <strong>Важно:</strong> вся информация на сайте носит исключительно ознакомительный характер и не является
-    руководством к покупке или сборке. Указанные веса, размеры и совместимость компонентов — ориентировочные;
-    перед покупкой и монтажом сверяйтесь со спецификациями производителя. Соблюдайте правила и ограничения
-    на полёты БПЛА, действующие в вашем регионе.
+    <strong>Важно.</strong> Вся информация на сайте носит ознакомительный характер и не является
+    руководством к покупке или руководством по сборке. Веса, размеры и совместимость компонентов
+    приведены приблизительно — перед покупкой сверяйтесь со спецификациями производителя.
+    Соблюдайте правила и ограничения на полёты, действующие в вашем регионе.
   </div>
 
   <footer>
@@ -124,166 +142,239 @@ const { createApp } = Vue;
 
 const DATA = {
   materials: {
-    plastic:  { name: 'Пластик',   mult: 1.15 },
-    carbon:   { name: 'Карбон',    mult: 1.0 },
-    aluminum: { name: 'Алюминий',  mult: 1.45 }
+    carbon: {
+      name: 'Карбон',
+      note: 'Стандарт для FPV: лучший баланс прочности и веса. Практически все современные рамы — карбон.'
+    },
+    plastic: {
+      name: 'Пластик',
+      note: 'Дешёвый, но гибкий и хрупкий. Встречается в бюджетных и учебных рамах малого размера; для классов от 5" практически не используется.'
+    },
+    aluminum: {
+      name: 'Алюминий',
+      note: 'Жёсткий и прочный, но заметно тяжелее карбона. В FPV встречается в виде отдельных пластин, креплений и в промышленных/трубчатых конструкциях.'
+    }
   },
   frames: {
-    "3-cinewhoop": { name: '3" (cinewhoop)', props: 'Полёт в помещениях, мягкие кинематографичные съёмки.', stack: '20×20 мм', battery: '4S 850–1100 мАч', maxWeight: 400, w: { plastic: 120, carbon: 90, aluminum: 140 } },
-    "4":  { name: '4" (кросс/трейт)', props: 'Компактный универсал: маневренность и живучесть.', stack: '20×20 мм', battery: '4S 850–1300 мАч', maxWeight: 550, w: { carbon: 95, aluminum: 140 } },
-    "5":  { name: '5" (фристайл/гонки)', props: 'Самый популярный класс: баланс скорости и маневренности.', stack: '20×20 или 30.5×30.5 мм', battery: '4S 1300 / 6S 1300–1500 мАч', maxWeight: 1000, w: { carbon: 110, aluminum: 160 } },
-    "6":  { name: '6" (фристайл/полукросс)', props: 'Больше стабильности и полезной нагрузки, чем 5".', stack: '30.5×30.5 мм', battery: '6S 1500–2200 мАч', maxWeight: 1200, w: { carbon: 150, aluminum: 220 } },
-    "7":  { name: '7" (дальнолёт)', props: 'Дальние полёты и съёмка с большим временем в воздухе.', stack: '30.5×30.5 мм', battery: '6S 3000–4000 мАч', maxWeight: 2000, w: { carbon: 160, aluminum: 240 } },
-    "8":  { name: '8" (лонг-рейс/нагрузка)', props: 'Дальний полёт с камерой или грузом, крупные пропеллеры.', stack: '30.5×30.5 мм', battery: '6S 4000–6000 мАч', maxWeight: 2500, w: { carbon: 300, aluminum: 450 } },
-    "10": { name: '10" (тяжёлый лонг-рейс)', props: 'Переноска грузов, большие Li-ion сборки.', stack: '30.5×30.5 мм', battery: '6S Li-ion 6000+ мАч', maxWeight: 4000, w: { carbon: 450, aluminum: 650 } },
-    "15": { name: '15" (X-class)', props: 'Крупные гоночные/шоу-платформы, пропеллеры до 15".', stack: '30.5×30.5 мм', battery: '12S', maxWeight: 9000, w: { carbon: 580, aluminum: 850 } }
+    '3-inch': {
+      name: '3" (cinewhoop)',
+      purpose: 'Лёгкий, для помещений и мягких съёмок. Пропеллеры до 3".',
+      stack: '20×20 мм',
+      battery: '4S',
+      maxWeight: 400,
+      weights: { carbon: 110, plastic: 90, aluminum: 150 },
+      available: true
+    },
+    '4-inch': {
+      name: '4" (универсал)',
+      purpose: 'Компромисс между 3" и 5": живая динамика, меньше шума и веса. Пропеллеры до 4".',
+      stack: '20×20 мм',
+      battery: '4S / 6S',
+      maxWeight: 650,
+      weights: { carbon: 90, plastic: null, aluminum: 140 },
+      available: false
+    },
+    '5-inch': {
+      name: '5" (фристайл / гонки)',
+      purpose: 'Самый популярный класс. Огромный выбор комплектующих. Пропеллеры до 5".',
+      stack: '30.5×30.5 мм',
+      battery: '4S / 6S',
+      maxWeight: 1000,
+      weights: { carbon: 110, plastic: null, aluminum: 180 },
+      available: true
+    },
+    '6-inch': {
+      name: '6" (фристайл / дальний полёт)',
+      purpose: 'Чуть больше эффективности, чем 5", при сохранении динамики. Пропеллеры до 6".',
+      stack: '30.5×30.5 мм',
+      battery: '6S',
+      maxWeight: 1300,
+      weights: { carbon: 140, plastic: null, aluminum: 220 },
+      available: false
+    },
+    '7-inch': {
+      name: '7" (дальнолёт)',
+      purpose: 'Для дальних полётов и съёмок. Пропеллеры до 7".',
+      stack: '30.5×30.5 мм',
+      battery: '6S',
+      maxWeight: 2000,
+      weights: { carbon: 160, plastic: null, aluminum: 260 },
+      available: true
+    },
+    '8-inch': {
+      name: '8" (полу-тяжёлый дальнолёт)',
+      purpose: 'Дальние полёты с большим аккумулятором и полезной нагрузкой. Пропеллеры до 8".',
+      stack: '30.5×30.5 мм',
+      battery: '6S',
+      maxWeight: 2800,
+      weights: { carbon: 280, plastic: null, aluminum: 400 },
+      available: false
+    },
+    '10-inch': {
+      name: '10" (тяжёлый дальнолёт / подъём камер)',
+      purpose: 'Перевозка камер и подвесов, большие аккумуляторы. Требует мощных моторов.',
+      stack: '30.5×30.5 мм',
+      battery: '6S',
+      maxWeight: 4500,
+      weights: { carbon: 400, plastic: null, aluminum: 550 },
+      available: false
+    },
+    '15-inch': {
+      name: '15" (X-class)',
+      purpose: 'Экстремальный класс: огромные пропеллеры, максимальная тяга и шум. Для опытных.',
+      stack: '30.5×30.5 мм',
+      battery: '12S / 14S',
+      maxWeight: 8000,
+      weights: { carbon: 600, plastic: null, aluminum: 850 },
+      available: false
+    }
   },
   components: {
-    "3-cinewhoop": {
-      "Моторы (4 шт.)": [
+    '3-inch': {
+      'Моторы (комплект 4 шт.)': [
         { id: 'a1', name: '1404 3800 KV (4S)', weight: 44 },
         { id: 'a2', name: '1506 3000 KV (4S)', weight: 52 }
       ],
-      "Пропеллеры": [
+      'Пропеллеры': [
         { id: 'b1', name: '3" (3040)', weight: 5 },
         { id: 'b2', name: '3" (3045)', weight: 7 }
       ],
-      "Стек (FC + 4-in-1 ESC)": [
+      'Стек (FC + 4-in-1 ESC)': [
         { id: 'c1', name: '20×20, 20–30 A', weight: 45 }
       ],
-      "Аккумулятор": [
+      'Аккумулятор': [
         { id: 'd1', name: '4S 850 мАч', weight: 115 },
         { id: 'd2', name: '4S 1100 мАч', weight: 145 }
       ],
-      "VTX + камера": [
+      'VTX + камера': [
         { id: 'e1', name: 'Компактная аналоговая система', weight: 25 }
       ],
-      "Приёмник": [
+      'Приёмник': [
         { id: 'f1', name: 'ELRS, компактный', weight: 3 }
       ]
     },
-    "5": {
-      "Моторы (4 шт.)": [
-        { id: 'a1', name: '2207/2306, 2300–2600 KV (4S)', weight: 136 },
-        { id: 'a2', name: '2207/2306, 1750–1950 KV (6S)', weight: 136 }
+    '5-inch': {
+      'Моторы (комплект 4 шт.)': [
+        { id: 'a1', name: '2207 / 2306, 2300–2600 KV (4S)', weight: 136 },
+        { id: 'a2', name: '2207 / 2306, 1750–1950 KV (6S)', weight: 136 }
       ],
-      "Пропеллеры": [
-        { id: 'b1', name: '5×4×3', weight: 12 },
-        { id: 'b2', name: '5×4.3×3', weight: 15 }
+      'Пропеллеры': [
+        { id: 'b1', name: '5x4x3', weight: 12 },
+        { id: 'b2', name: '5x4.3x3', weight: 15 }
       ],
-      "Стек": [
+      'Стек': [
         { id: 'c1', name: '20×20 + ESC 45 A', weight: 100 },
         { id: 'c2', name: '30.5×30.5 + ESC 60 A', weight: 130 }
       ],
-      "Аккумулятор": [
+      'Аккумулятор': [
         { id: 'd1', name: '4S 1300 мАч', weight: 185 },
         { id: 'd2', name: '6S 1500 мАч', weight: 220 }
       ],
-      "VTX + камера": [
+      'VTX + камера': [
         { id: 'e1', name: 'Аналог (камера + VTX)', weight: 35 },
         { id: 'e2', name: 'DJI O3 Air Unit', weight: 105 }
       ],
-      "Приёмник": [
+      'Приёмник': [
         { id: 'f1', name: 'ELRS 2.4 ГГц', weight: 5 }
       ]
     },
-    "7": {
-      "Моторы (4 шт.)": [
-        { id: 'a1', name: '2806.5/2810, 1300–1600 KV (6S)', weight: 220 },
-        { id: 'a2', name: '2810, 1100 KV (6S, эффективность)', weight: 240 }
+    '7-inch': {
+      'Моторы (комплект 4 шт.)': [
+        { id: 'a1', name: '2806.5 / 2810, 1300–1600 KV (6S)', weight: 220 },
+        { id: 'a2', name: '2810, 1100 KV (6S, макс. эффективность)', weight: 240 }
       ],
-      "Пропеллеры": [
+      'Пропеллеры': [
         { id: 'b1', name: '7" (7040)', weight: 35 },
         { id: 'b2', name: '7" (7045)', weight: 40 }
       ],
-      "Стек": [
+      'Стек': [
         { id: 'c1', name: '30.5×30.5 + ESC 50 A', weight: 160 },
         { id: 'c2', name: '30.5×30.5 + ESC 60 A', weight: 190 }
       ],
-      "Аккумулятор": [
+      'Аккумулятор': [
         { id: 'd1', name: '6S 3000 мАч', weight: 480 },
         { id: 'd2', name: '6S 4000 мАч', weight: 650 }
       ],
-      "VTX + антенна": [
-        { id: 'e1', name: 'Цифровая система + антенна', weight: 50 }
+      'VTX + антенна': [
+        { id: 'e1', name: 'Цифровая система + стандартная антенна', weight: 50 }
       ],
-      "Приёмник": [
+      'Приёмник': [
         { id: 'f1', name: 'ELRS с внешней антенной', weight: 10 }
       ]
     }
-  },
-  materialNotes: {
-    "3-cinewhoop": { plastic: 'Пластик типичен для cinewhoop-рам: дешевле и проще в ремонте, но тяжелее карбона при той же прочности.', carbon: 'Карбон — стандарт для 3": лёгкий и жёсткий.', aluminum: 'Алюминий в 3" почти не встречается — слишком тяжело для этого класса.' },
-    "4": { carbon: 'Карбон — основной материал для 4".', aluminum: 'Алюминий в 4" практически не используется.' },
-    "5": { carbon: 'Карбон — стандарт для 5" фристайла: рамы обычно весят 80–150 г.', aluminum: 'Алюминий в 5" почти не применяется, кроме отдельных пластин.' },
-    "6": { carbon: 'Карбон — стандарт для 6".', aluminum: 'Алюминий изредка встречается в виде пластин-усилителей.' },
-    "7": { carbon: 'Карбон — основной материал для 7" дальнолётов: от 112 до 220 г в зависимости от толщины рук.', aluminum: 'Алюминий в 7" — редкость.' },
-    "8": { carbon: 'Карбон — основной материал для 8".', aluminum: 'Алюминий изредка применяют в промышленных билдах: трубчатые рукава и пластины.' },
-    "10": { carbon: 'Карбон — основной материал для 10".', aluminum: 'Алюминий встречается в промышленных и грузовых билдах.' },
-    "15": { carbon: 'Карбон — основной материал для X-class.', aluminum: 'Алюминий встречается в гибридных конструкциях X-class.' }
   }
 };
-
-const frameKeys = Object.keys(DATA.frames);
-const materialKeys = Object.keys(DATA.materials);
 
 createApp({
   data() {
     return {
       DATA,
-      frameKeys,
-      materialKeys,
-      selectedFrame: '5',
-      selectedMaterial: 'carbon',
+      frameOrder: ['3-inch', '4-inch', '5-inch', '6-inch', '7-inch', '8-inch', '10-inch', '15-inch'],
+      materialOrder: ['carbon', 'plastic', 'aluminum'],
+      selectedFrame: '5-inch',
+      material: 'carbon',
       selection: {}
     };
   },
-  created() { this.resetSelection(); },
-  watch: {
-    selectedFrame() { this.resetSelection(); }
+  created() {
+    this.resetSelection();
   },
   computed: {
-    currentFrame() { return DATA.frames[this.selectedFrame]; },
-    currentComponents() { return DATA.components[this.selectedFrame] || {}; },
-    hasComponents() { return Object.keys(this.currentComponents).length > 0; },
-    currentMaterialNote() { return (DATA.materialNotes[this.selectedFrame] || {})[this.selectedMaterial] || ''; },
-    frameWeight() { return Math.round(this.currentFrame.w[this.selectedMaterial] || 0); },
+    currentFrame() { return this.DATA.frames[this.selectedFrame]; },
+    currentComponents() { return this.DATA.components[this.selectedFrame] || {}; },
     totalWeight() {
-      let sum = this.frameWeight;
-      Object.entries(this.selection).forEach(([cat, id]) => {
-        const it = (this.currentComponents[cat] || []).find(x => x.id === id);
-        if (it) sum += it.weight;
+      let sum = this.currentFrame.weights[this.material] || 0;
+      const comps = this.currentComponents;
+      Object.values(this.selection).forEach(id => {
+        Object.values(comps).forEach(cat => {
+          const it = cat.find(x => x.id === id);
+          if (it) sum += it.weight;
+        });
       });
-      return sum;
+      return Math.round(sum);
     },
-    percentage() { return Math.round(this.totalWeight / this.currentFrame.maxWeight * 100); },
-    status() {
+    percentage() {
+      return Math.round(this.totalWeight / this.currentFrame.maxWeight * 100);
+    },
+    statusClass() {
+      const p = this.percentage;
+      if (p <= 65) return 'status-ok';
+      if (p <= 100) return 'status-warn';
+      return 'status-bad';
+    },
+    statusText() {
+      const p = this.percentage;
+      if (p <= 65) return 'Лёгкая сборка — отличная динамика.';
+      if (p <= 85) return 'Баланс. Для фристайла нормально.';
+      if (p <= 100) return 'На грани. Время полёта уменьшится, нагрев вырастет.';
+      return 'ПЕРЕГРУЗ. Дрон будет плохо летать, аккумулятор сядет за минуты, есть риск поломки.';
+    },
+    itemClass() {
       const p = this.percentage;
       if (p <= 65) return 'ok';
       if (p <= 100) return 'warn';
       return 'bad';
     },
-    statusText() {
-      const p = this.percentage;
-      if (p <= 65) return 'Лёгкая сборка — отличная динамика.';
-      if (p <= 100) return 'На грани: время полёта меньше, нагрев выше.';
-      return 'ПЕРЕГРУЗ. Аккумулятор сядет за минуты, есть риск поломки.';
-    },
+    barWidth() { return Math.min(this.percentage, 100) + '%'; },
     barColor() {
-      if (this.status === 'ok') return '#2e7d32';
-      if (this.status === 'warn') return '#f57f17';
+      const p = this.percentage;
+      if (p <= 65) return '#2e7d32';
+      if (p <= 100) return '#f57f17';
       return '#c62828';
     }
   },
   methods: {
     resetSelection() {
-      const sel = {};
-      Object.entries(this.currentComponents).forEach(([cat, items]) => {
-        if (items.length) sel[cat] = items[0].id;
+      const s = {};
+      const comps = this.currentComponents;
+      Object.entries(comps).forEach(([cat, items]) => {
+        if (items.length) s[cat] = items[0].id;
       });
-      this.selection = sel;
-    },
-    pickFrame(f) { this.selectedFrame = f; }
+      this.selection = s;
+    }
+  },
+  watch: {
+    selectedFrame() { this.resetSelection(); }
   }
 }).mount('#app');
 </script>
